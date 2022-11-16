@@ -47,8 +47,8 @@ func main() {
 	})
 
 	var max int
-	max = symbols_limit
-	if len(sym_kv_data) < symbols_limit {
+	max = top
+	if len(sym_kv_data) < top {
 		max = len(sym_kv_data)
 	}
 
