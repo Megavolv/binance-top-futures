@@ -3,12 +3,24 @@ package main
 import (
 	"context"
 	"fmt"
-	"sort"
+	"time"
 
 	"github.com/adshao/go-binance/v2"
+	"github.com/adshao/go-binance/v2/futures"
 )
 
 func main() {
+
+	tube := make(chan Pair, 16)
+
+	go func(p chan Pair) {
+		list := NewList()
+		for elem := range p {
+			list.Set(elem.Symbol, elem.Median)
+			list.Show()
+		}
+	}(tube)
+
 	fut_client := binance.NewFuturesClient("", "")
 	info, err := fut_client.NewExchangeInfoService().Do(context.Background())
 	if err != nil {
@@ -17,18 +29,30 @@ func main() {
 
 	fmt.Printf("Всего торговых пар: %d\n", len(info.Symbols))
 
-	sym_kv_data := []kv{}
-	for _, symdata := range info.Symbols {
-		fmt.Print(".")
+	const numJobs = 5
+	jobs := make(chan string, numJobs)
 
-		if len(filterByQuote) > 0 {
-			if symdata.QuoteAsset != filterByQuote {
-				continue
+	for w := 1; w <= 3; w++ {
+		go worker(w, jobs, tube, fut_client)
+	}
+
+	for {
+		for _, symdata := range info.Symbols {
+			if len(filterByQuote) > 0 {
+				if symdata.QuoteAsset != filterByQuote {
+					continue
+				}
 			}
-		}
 
+			jobs <- symdata.Symbol
+		}
+	}
+}
+
+func worker(id int, jobs <-chan string, tube chan Pair, fut_client *futures.Client) {
+	for sym := range jobs {
 		kl := fut_client.NewKlinesService()
-		res, err := kl.Limit(klines_limit).Interval(klines_interval).Symbol(symdata.Symbol).Do(context.Background())
+		res, err := kl.Limit(klines_limit).Interval(klines_interval).Symbol(sym).Do(context.Background())
 		if err != nil {
 			panic(err)
 		}
@@ -37,26 +61,9 @@ func main() {
 		if median == 0 {
 			continue
 		}
-		sym_kv_data = append(sym_kv_data, kv{symdata.BaseAsset, median})
-	}
 
-	fmt.Println("|")
+		tube <- Pair{Symbol: sym, Median: median}
 
-	sort.Slice(sym_kv_data, func(i, j int) bool {
-		return sym_kv_data[i].Median > sym_kv_data[j].Median
-	})
-
-	var max int
-	max = top
-	if len(sym_kv_data) < top {
-		max = len(sym_kv_data)
-	}
-
-	p1, _ := calcPercentile(sym_kv_data, 97)
-	p2, _ := calcPercentile(sym_kv_data, 93)
-	p3, _ := calcPercentile(sym_kv_data, 88)
-
-	for i, k := range sym_kv_data[0:max] {
-		fmt.Printf("%2d %s %f\n", i, ChooseColor(k.Median, p1, p2, p3)(k.Symbol), k.Median)
+		time.Sleep(2 * time.Second)
 	}
 }

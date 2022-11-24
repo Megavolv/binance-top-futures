@@ -6,20 +6,20 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type kv struct {
+const (
+	PERCENTILE1 = 97
+	PERCENTILE2 = 93
+	PERCENTILE3 = 88
+	PERCENTILE4 = 0
+)
+
+type Pair struct {
 	Symbol string
 	Median float64
 }
 
-func calcPercentile(data []kv, percent float64) (float64, error) {
-
-	fdata := make([]float64, len(data))
-
-	for i, k := range data {
-		fdata[i] = k.Median
-	}
-
-	return stats.Percentile(fdata, percent)
+func (p *Pair) SetMedian(m float64) {
+	p.Median = m
 }
 
 func calcMedian(data []*futures.Kline) (median float64) {

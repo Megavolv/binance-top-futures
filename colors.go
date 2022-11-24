@@ -9,13 +9,13 @@ var blue func(a ...interface{}) string = color.New(color.FgBlue).SprintFunc()
 var cyan func(a ...interface{}) string = color.New(color.FgCyan).SprintFunc()
 var magenta func(a ...interface{}) string = color.New(color.FgMagenta).SprintFunc()
 
-func ChooseColor(target, p1, p2, p3 float64) func(a ...interface{}) string {
+func (l *List) chooseColor(p *Pair) func(a ...interface{}) string {
 
-	if target >= p1 {
+	if p.Median >= l.p1 {
 		return red
-	} else if target >= p2 {
+	} else if p.Median >= l.p2 {
 		return yellow
-	} else if target >= p3 {
+	} else if p.Median >= l.p3 {
 		return cyan
 	}
 
