@@ -46,6 +46,9 @@ func main() {
 
 			jobs <- symdata.Symbol
 		}
+		if sleep > 0 {
+			time.Sleep(time.Duration(sleep) * time.Second)	
+		}
 	}
 }
 
